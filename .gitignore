@@ -1,0 +1,38 @@
+# DATADIS configuration and local File Browser state
+config_datadis*
+filebrowser.db
+
+# Logs: keep the directory markers
+/logs/*
+!/logs/README.md
+
+# Generated responses: keep the directory markers
+/responses/*
+!/responses/README.md
+
+# Local registers and temporary credentials: keep the directory markers
+/registers/*
+!/registers/README.md
+
+# Python environments, bytecode, and test caches
+.venv/
+__pycache__/
+*.py[cod]
+.pytest_cache/
+
+# Environment variables and secrets
+.env
+.env.*
+*.key
+*.pem
+*.p12
+*.pfx
+*.p8
+id_rsa*
+id_ed25519*
+
+# Coverage and analysis artifacts
+.coverage
+htmlcov/
+.mypy_cache/
+.ruff_cache/
