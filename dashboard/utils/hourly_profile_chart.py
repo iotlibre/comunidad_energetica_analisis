@@ -1,10 +1,13 @@
 from __future__ import annotations
 
 import json
+import math
 from pathlib import Path
 
 import pandas as pd
 import plotly.express as px
+
+from perfil_diario_v9 import _spanish_national_holidays
 
 
 HOUR_COLUMNS = [str(hour) for hour in range(24)]
@@ -47,8 +50,12 @@ def _season_day_weights(
 		if period.month not in season_months:
 			continue
 		days = pd.date_range(period.start_time, period.end_time, freq="D")
-		weights["weekday"][period.month] += int((days.weekday < 5).sum())
-		weights["weekend"][period.month] += int((days.weekday >= 5).sum())
+		holidays = _spanish_national_holidays(period.year)
+		for day in days:
+			if day.weekday() >= 5 or day.date() in holidays:
+				weights["weekend"][period.month] += 1
+			else:
+				weights["weekday"][period.month] += 1
 	return weights
 
 
@@ -120,16 +127,25 @@ def _weighted_profile_metric_totals(
 		for hour, value in hour_values.items():
 			if value is not None:
 				try:
-					hour_values[hour] = float(value)
+					numeric_value = float(value)
 				except (TypeError, ValueError) as error:
 					raise ValueError(
 						f"El perfil {path.name} tiene un valor de {metric} inválido."
 					) from error
+				if not math.isfinite(numeric_value):
+					raise ValueError(
+						f"El perfil {path.name} tiene un valor de {metric} inválido."
+					)
+				hour_values[hour] = numeric_value
 		profile_rows.append({"month": month, **hour_values})
 
 	profile = pd.DataFrame(profile_rows).set_index("month")
 	if profile.index.has_duplicates:
 		raise ValueError(f"El perfil {path.name} contiene meses duplicados.")
+	if set(profile.index) != set(range(1, 13)):
+		raise ValueError(
+			f"El perfil {path.name} debe contener los meses del 1 al 12."
+		)
 	month_weights = pd.Series(day_weights, dtype="float64")
 	month_weights = month_weights[month_weights > 0]
 	profile = profile.reindex(month_weights.index)
@@ -140,6 +156,45 @@ def _weighted_profile_metric_totals(
 	weighted_values = profile.fillna(0).mul(month_weights, axis=0).sum()
 	available_days = weights.sum()
 	return weighted_values, available_days
+
+
+def _community_seasonal_metric_mean(
+	profile_directory: Path,
+	weights: dict[str, dict[int, int]],
+	metric: str,
+) -> pd.Series:
+	if not profile_directory.is_dir():
+		raise ValueError(
+			f"No existe el directorio de perfiles ampliados: {profile_directory}."
+		)
+	profile_paths = sorted(profile_directory.glob("*_day_profile_extended.json"))
+	if not profile_paths:
+		raise ValueError(
+			f"No se encontraron archivos *_day_profile_extended.json en "
+			f"{profile_directory}."
+		)
+
+	user_values = []
+	for profile_path in profile_paths:
+		weekday_values, weekday_days = _weighted_profile_metric_totals(
+			profile_path, weights["weekday"], "weekday", metric
+		)
+		weekend_values, weekend_days = _weighted_profile_metric_totals(
+			profile_path, weights["weekend"], "weekend", metric
+		)
+		weekday_values.index = range(24)
+		weekday_days.index = range(24)
+		weekend_values.index = range(24)
+		weekend_days.index = range(24)
+		available_days = weekday_days + weekend_days
+		user_available = available_days > 0
+		user_mean = (weekday_values + weekend_values).div(
+			available_days.where(user_available)
+		)
+		user_values.append(user_mean)
+
+	profiles = pd.concat(user_values, axis=1)
+	return profiles.mean(axis=1)
 
 
 def build_seasonal_profile_figure(
@@ -406,6 +461,7 @@ def build_community_seasonal_profile_figure(
 	season_months: set[int],
 	title: str,
 	pvgis_profile_path: Path | None = None,
+	profile_extended_directory: Path = Path("responses"),
 ):
 	weights = _season_day_weights(represented_months, season_months)
 	weekday_days = sum(weights["weekday"].values())
@@ -430,14 +486,34 @@ def build_community_seasonal_profile_figure(
 		{
 			"hora": range(24),
 			"consumo_kWh": community_mean.to_numpy(),
-			"perfil": "Toda la comunidad",
+			"perfil": "Consumo medio de los usuarios",
 		}
 	)
 	profiles = [community_profile]
 	if pvgis_profile_path is not None:
 		pvgis_profile = _load_pvgis_profile(pvgis_profile_path)
-		pvgis_profile["perfil"] = "Generación PVGIS por usuario"
+		pvgis_profile["perfil"] = "Generación PVGIS proporcional"
 		profiles.append(pvgis_profile)
+
+	extended_weights = _season_day_weights(represented_months, season_months)
+	for metric, label in (
+		("self_consumption_kWh", "Autoconsumida media de los usuarios"),
+		("total_generation", "Energía generada media de los usuarios"),
+	):
+		community_values = _community_seasonal_metric_mean(
+			profile_extended_directory,
+			extended_weights,
+			metric,
+		)
+		profiles.append(
+			pd.DataFrame(
+				{
+					"hora": range(24),
+					"consumo_kWh": community_values.to_numpy(),
+					"perfil": label,
+				}
+			)
+		)
 
 	figure = px.scatter(
 		pd.concat(profiles, ignore_index=True),
@@ -447,11 +523,7 @@ def build_community_seasonal_profile_figure(
 		title=title,
 		labels={
 			"hora": "Hora del día",
-			"consumo_kWh": (
-				"Consumo / generación media (kWh/usuario/hora)"
-				if pvgis_profile_path is not None
-				else "Consumo medio (kWh)"
-			),
+			"consumo_kWh": "Energía media por usuario (kWh/usuario/hora)",
 			"perfil": "Perfil",
 		},
 	)
@@ -459,7 +531,7 @@ def build_community_seasonal_profile_figure(
 	figure.update_traces(
 		line={"color": "#ef9a9a"},
 		marker={"color": "#ef9a9a", "size": 8, "symbol": "square"},
-		selector={"name": "Toda la comunidad"},
+		selector={"name": "Consumo medio de los usuarios"},
 	)
 	if pvgis_profile_path is not None:
 		figure.update_traces(
@@ -467,8 +539,22 @@ def build_community_seasonal_profile_figure(
 			marker={"color": "#2e7d32", "size": 8},
 			fill="tozeroy",
 			fillcolor="rgba(46, 125, 50, 0.12)",
-			selector={"name": "Generación PVGIS por usuario"},
+			selector={"name": "Generación PVGIS proporcional"},
 		)
+	figure.update_traces(
+		line={"color": "#1b5e20", "dash": "dash"},
+		marker={"color": "#1b5e20", "size": 8, "symbol": "diamond"},
+		fill="tozeroy",
+		fillcolor="rgba(27, 94, 32, 0.16)",
+		selector={"name": "Autoconsumida media de los usuarios"},
+	)
+	figure.update_traces(
+		line={"color": "#ba68c8", "dash": "dot"},
+		marker={"color": "#ba68c8", "size": 8, "symbol": "triangle-up"},
+		fill="tozeroy",
+		fillcolor="rgba(186, 104, 200, 0.16)",
+		selector={"name": "Energía generada media de los usuarios"},
+	)
 	figure.update_xaxes(dtick=1)
 	figure.update_layout(
 		height=520,

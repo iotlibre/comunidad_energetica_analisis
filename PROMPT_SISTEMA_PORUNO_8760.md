@@ -325,7 +325,7 @@ Cuerpo JSON:
 Lee los ficheros `.json` del directorio indicado. Los registros de consumo utilizan campos como `date`, `cups`, `consumptionKWh`, `surplusEnergyKWh`, `generationEnergyKWh` y `selfConsumptionEnergyKWh`.
 
 **Proceso**  
-Filtra los registros por el rango de fechas, agrupa por CUPS y mes, suma los campos energéticos y calcula totales por usuario.
+Filtra los registros por el rango de fechas, agrupa por CUPS y mes, suma los campos energéticos y calcula totales por usuario. No suma los campos de cosumo (para obtener la energía consumida es necesario sumar el consumo a el autoconsumo).
 
 **Salidas**  
 Escribe `energia_autoconsumida_{anio_inicio}_{mes_inicio:02d}_{anio_fin}_{mes_fin:02d}.csv` en el directorio indicado. La respuesta incluye `status`, `directorio`, `rango_fechas`, `usuarios_procesados` y `output_file`.

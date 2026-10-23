@@ -7,8 +7,11 @@ import plotly.express as px
 import plotly.graph_objects as go
 
 dashboard_dir = Path(__file__).resolve().parents[1]
+project_root = dashboard_dir.parent
 if str(dashboard_dir) not in sys.path:
 	sys.path.insert(0, str(dashboard_dir))
+if str(project_root) not in sys.path:
+	sys.path.insert(0, str(project_root))
 
 from utils.autoconsumption_chart import (
 	find_autoconsumption_files,
@@ -221,6 +224,7 @@ if autoconsumption_data is not None:
 						season_months,
 						title,
 						pvgis_path,
+						profile_extended_directory=responses_dir,
 					)
 				except (OSError, ValueError, TypeError) as error:
 					st.error(
@@ -230,13 +234,20 @@ if autoconsumption_data is not None:
 					community_season_figures.append((column, figure))
 	if community_season_figures:
 		community_season_y_max = max(
-			float(max(trace.y))
-			for _, figure in community_season_figures
-			for trace in figure.data
-			if trace.y is not None
+			(
+				float(value)
+				for _, figure in community_season_figures
+				for trace in figure.data
+				if trace.y is not None
+				for value in trace.y
+				if pd.notna(value)
+			),
+			default=0.0,
 		)
 		community_season_y_max = (
-			community_season_y_max * 1.05 if community_season_y_max > 0 else 1.0
+			community_season_y_max * 1.05
+			if community_season_y_max > 0
+			else 1.0
 		)
 		for column, figure in community_season_figures:
 			figure.update_yaxes(range=[0, community_season_y_max])

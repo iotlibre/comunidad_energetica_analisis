@@ -1073,10 +1073,15 @@ Conservar los colores actuales de las series autoconsumida, importada y exportad
 
 Incluir cuatro gráficas horarias, en dos filas:
 
-* **Invierno** (octubre-marzo) y **verano** (abril-septiembre): mostrar el perfil horario medio comunitario y el perfil PVGIS correspondiente, cargado desde `pvgis_spain_profile_winter_2025.json` o `pvgis_spain_profile_summer_2025.json`. Alinear los datos por hora y mantener unidades compatibles.
+* **Invierno** (octubre-marzo) y **verano** (abril-septiembre): mostrar estas cuatro series horarias, alineadas por hora:
+  * **Consumo medio de los usuarios**, calculado con los perfiles horarios comunitarios existentes.
+  * **Generación PVGIS proporcional**, cargada desde `pvgis_spain_profile_winter_2025.json` o `pvgis_spain_profile_summer_2025.json`.
+  * **Autoconsumida media de los usuarios** y **Energía generada media de los usuarios**, calculadas desde todos los archivos `*_day_profile_extended.json` del directorio `responses/` (directorio predeterminado). Para cada CUPS, calcular la media estacional por hora ponderando las medias mensuales de `weekday` y `weekend` por los días representados en cada mes y categoría. Clasificar sábados, domingos y festivos nacionales españoles como `weekend`; los demás días son `weekday`. Después, calcular el promedio aritmético de las medias estacionales de los CUPS con dato válido para cada hora: cada CUPS tiene el mismo peso y se excluyen de esa hora los valores `null`.
+
+  Mostrar las cuatro series en el mismo eje Y, con unidad por usuario `kWh/usuario/hora`, y una escala Y común para las gráficas de invierno y verano, de modo que puedan compararse entre sí. Mantener para autoconsumo y generación los colores, estilos de línea, marcadores y rellenos de sus series equivalentes del apartado Energía autoconsumida. Si el directorio no existe, no contiene perfiles o algún perfil es inválido, mostrar un error explícito en lugar de resultados parciales.
 * **Día festivo** y **día laborable**: mostrar únicamente el perfil horario comunitario correspondiente (`perfil_comunitario_weekend.csv` o `perfil_comunitario_weekday.csv`); no incluir ni comparar perfiles individuales de CUPS.
 
-Las gráficas horarias deben mostrar 24 horas, usar líneas y marcadores, mantener la leyenda debajo y fijar un máximo Y compartido dentro de cada pareja estacional o de tipo de día. Las gráficas estacionales incluyen PVGIS; las de festivo y laborable no.
+Las gráficas horarias deben mostrar 24 horas, usar líneas y marcadores y mantener la leyenda debajo. Las gráficas estacionales deben compartir la misma escala Y entre invierno y verano; las de día festivo y día laborable también deben compartir una escala Y entre sí. Las gráficas estacionales incluyen PVGIS; las de festivo y laborable no.
 
 ### Energía autoconsumida
 
