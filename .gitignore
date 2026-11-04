@@ -9,6 +9,7 @@ filebrowser.db
 # Generated responses: keep the directory markers
 /responses/*
 !/responses/README.md
+responses_*/
 
 # Local registers and temporary credentials: keep the directory markers
 /registers/*
