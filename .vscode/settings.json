@@ -1,0 +1,12 @@
+{
+    "chat.tools.terminal.autoApprove": {
+        "/^python -m unittest discover -s tests -p 'test_hourly_profile_chart\\.py'$/": {
+            "approve": true,
+            "matchCommandLine": true
+        },
+        "/^/home/oscar/sw/envs/\\.dash/bin/python -m unittest discover -s tests -p 'test_hourly_profile_chart\\.py'$/": {
+            "approve": true,
+            "matchCommandLine": true
+        }
+    }
+}
