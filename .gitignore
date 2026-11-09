@@ -5,6 +5,7 @@ filebrowser.db
 # Logs: keep the directory markers
 /logs/*
 !/logs/README.md
+/*.log
 
 # Generated responses: keep the directory markers
 /responses/*
