@@ -1,11 +1,18 @@
 import streamlit as st
 from pathlib import Path
 import json
+import sys
 
 BASE = Path(__file__).resolve().parent.parent
 responses_dir = BASE / "responses"
+dashboard_dir = Path(__file__).resolve().parent
+if str(dashboard_dir) not in sys.path:
+    sys.path.insert(0, str(dashboard_dir))
+
+from auth import require_dashboard_login
 
 st.set_page_config(page_title="Dashboard Energético", layout="wide")
+require_dashboard_login()
 st.title("Dashboard de perfiles energéticos")
 
 if responses_dir.exists():

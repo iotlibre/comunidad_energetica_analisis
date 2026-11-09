@@ -14,8 +14,10 @@ from utils.consumption_chart import (
 	load_consumption_data,
 )
 from utils.autoconsumption_chart import find_autoconsumption_files
+from auth import require_dashboard_login
 
 st.set_page_config(page_title="Datos disponibles", layout="wide")
+require_dashboard_login()
 st.title("Datos disponibles")
 st.header("Consumo horario")
 

@@ -30,8 +30,10 @@ from utils.hourly_profile_chart import (
 	resolve_pvgis_profile_path,
 	build_seasonal_profile_figure,
 )
+from auth import require_dashboard_login
 
 st.set_page_config(page_title="Energía", layout="wide")
+require_dashboard_login()
 st.title("Energía")
 
 
