@@ -11,13 +11,12 @@ idna==3.19
 numpy==2.2.6
 packaging==26.3
 pandas==2.3.3
-pip==26.2.1
+pip==24.0
 pydantic==2.13.5
 pydantic_core==2.46.5
 python-dateutil==2.9.0.post0
 pytz==2026.3.post1
 requests==2.34.2
-setuptools==84.0.0
 six==1.17.0
 starlette==1.6.0
 typing-inspection==0.4.4
@@ -25,4 +24,3 @@ typing_extensions==4.16.0
 tzdata==2026.3
 urllib3==2.7.0
 uvicorn==0.52.4
-wheel==0.48.0
