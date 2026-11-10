@@ -14,6 +14,7 @@ from utils.consumption_chart import (
 	load_consumption_data,
 )
 from utils.autoconsumption_chart import find_autoconsumption_files
+from utils.work_directory import select_work_directory
 from auth import require_dashboard_login
 
 st.set_page_config(page_title="Datos disponibles", layout="wide")
@@ -21,7 +22,11 @@ require_dashboard_login()
 st.title("Datos disponibles")
 st.header("Consumo horario")
 
-responses_dir = dashboard_dir.parent / "responses"
+responses_root = dashboard_dir.parent / "responses"
+responses_dir = (
+	select_work_directory(responses_root, "work_directory_data_available")
+	or responses_root
+)
 if not responses_dir.is_dir():
 	st.warning(f"No se encontró el directorio: {responses_dir}")
 else:
@@ -61,9 +66,10 @@ if not autoconsumption_files:
 	st.warning("No se encontraron archivos de energía autoconsumida en responses/.")
 else:
 	selected_autoconsumption_path = st.selectbox(
-		"Selecciona un fichero de energía autoconsumida",
+		"Fichero de energía autoconsumida",
 		autoconsumption_files,
 		format_func=lambda path: path.name,
+		key=f"autoconsumption_file_{responses_dir.name}",
 	)
 	try:
 		autoconsumption_table = pd.read_csv(selected_autoconsumption_path)

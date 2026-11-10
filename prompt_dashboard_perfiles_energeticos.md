@@ -25,18 +25,25 @@ reutilizables de visualización están en `dashboard/utils/`.
 | Archivo | Responsabilidad |
 |---|---|
 | `dashboard/utils/consumption_chart.py` | Encuentra JSON de consumo, normaliza sus registros horarios y construye la gráfica temporal de consumo. |
-| `dashboard/utils/autoconsumption_chart.py` | Encuentra y valida CSV de energía autoconsumida; construye el balance, los gráficos circulares por usuario y el porcentaje renovable. |
+| `dashboard/utils/autoconsumption_chart.py` | Encuentra y valida CSV de energía autoconsumida; carga los datos mensuales y construye el balance, los gráficos circulares por usuario y el porcentaje renovable. |
 | `dashboard/utils/hourly_profile_chart.py` | Lee perfiles horarios comunitarios, individuales, ampliados y PVGIS; calcula promedios estacionales y construye perfiles horarios. |
+| `dashboard/utils/work_directory.py` | Encuentra `responses/` y sus subdirectorios inmediatos `responses_*`; presenta el selector de directorio de trabajo y conserva la selección entre páginas. |
 | `perfil_diario_v9.py` | Genera perfiles individuales weekday/weekend y perfiles ampliados desde los JSON de consumo. La utilidad también contiene la clasificación de festivos nacionales españoles usada por los perfiles ampliados y el cálculo de perfiles horarios. |
 
 Las rutas de los datos que se describen a continuación son relativas al
-repositorio salvo que se indique lo contrario; la aplicación principal y las
-páginas resuelven `responses/` desde la raíz del proyecto.
+repositorio salvo que se indique lo contrario. En las páginas «Datos
+disponibles» y «Energía», el selector «Selecciona el directorio de trabajo»
+permite elegir `responses/` o uno de sus subdirectorios inmediatos
+`responses_*`. `responses/` es la opción inicial; la elección se conserva al
+navegar entre esas páginas. Los archivos de datos y perfiles usados por dichas
+páginas se leen desde el directorio elegido. La aplicación principal
+`dashboard/app.py` sigue explorando directamente `responses/`.
 
 ## 2. Convenciones de lectura
 
-- Los datos mensuales de energía se seleccionan desde archivos con el patrón
-  `responses/energia_autoconsumida_<AAAA>_<MM>_<AAAA>_<MM>.csv`.
+- Los datos mensuales de energía se seleccionan desde archivos del directorio
+  de trabajo con el patrón
+  `energia_autoconsumida_<AAAA>_<MM>_<AAAA>_<MM>.csv`.
 - La utilidad `load_autoconsumption_data` interpreta las columnas `cups` y
   las columnas mensuales `AAAA-MM_con`, `AAAA-MM_sur`, `AAAA-MM_gen` y
   `AAAA-MM_self`. Estas últimas se convierten, respectivamente, en
@@ -81,9 +88,11 @@ páginas resuelven `responses/` desde la raíz del proyecto.
 - **Nombre y ubicación:** sección «Consumo horario», en
   `dashboard/pages/02_Datos_disponibles.py`.
 - **Propósito:** inspeccionar la serie temporal de consumo de un archivo JSON.
-- **Datos de origen:** archivos en `responses/` cuyo nombre coincide con
-  `ES..._<AAAA>_<MM>_<AAAA>_<MM>.json`. Se requieren los campos `date`, `time`
-  y `consumptionKWh`.
+- **Directorio de trabajo:** selector «Selecciona el directorio de trabajo»,
+  compartido con la página «Energía».
+- **Datos de origen:** archivos en el directorio de trabajo seleccionado cuyo
+  nombre coincide con `ES..._<AAAA>_<MM>_<AAAA>_<MM>.json`. Se requieren los
+  campos `date`, `time` y `consumptionKWh`.
 - **Cálculo:** `date` y `time` se combinan en una marca temporal; el separador
   de fecha `/` se normaliza a `-`. El valor `24:00` se representa como 00:00
   del día siguiente. El consumo se convierte a valor numérico; marcas
@@ -95,16 +104,16 @@ páginas resuelven `responses/` desde la raíz del proyecto.
   JSON», con los archivos ordenados; el título de la gráfica es
   «Consumo horario: <nombre del archivo>». Se informa el número de registros
   representados y el hover es unificado por instante.
-- **Validaciones y casos sin datos:** avisa si `responses/` no existe o no
-  contiene JSON elegibles; muestra errores por campos requeridos ausentes,
-  errores de lectura o ausencia de datos válidos.
+- **Validaciones y casos sin datos:** avisa si no existe el directorio de
+  trabajo o no contiene JSON elegibles; muestra errores por campos requeridos
+  ausentes, errores de lectura o ausencia de datos válidos.
 
 ### «Energía autoconsumida»
 
 - **Nombre y ubicación:** sección «Energía autoconsumida» en
   `dashboard/pages/02_Datos_disponibles.py`.
 - **Propósito:** inspeccionar los datos agregados de energía calculada.
-- **Datos de origen:** CSV de `responses/` con patrón
+- **Datos de origen:** CSV del directorio de trabajo seleccionado con patrón
   `energia_autoconsumida_<AAAA>_<MM>_<AAAA>_<MM>.csv`.
 - **Presentación y cálculo:** se carga el contenido tabular del CSV con pandas
   y se muestra directamente; esta vista no vuelve a calcular ni agrega sus
@@ -112,9 +121,9 @@ páginas resuelven `responses/` desde la raíz del proyecto.
 - **Columnas y unidades:** conserva las columnas del archivo seleccionado.
   La página indica el formato temporal `YYYY_MM`; no impone una unidad común a
   todas las columnas en la tabla.
-- **Interacción y validación:** selector «Selecciona un fichero de energía
-  autoconsumida»; si no hay archivos, muestra un aviso. Si la lectura falla,
-  presenta un error.
+- **Interacción y validación:** el selector «Fichero de energía autoconsumida»
+  permite elegir entre los archivos del directorio seleccionado; si no hay
+  archivos, muestra un aviso. Si la lectura falla, presenta un error.
 
 ## 5. Página «Energía»
 
@@ -127,8 +136,8 @@ CSV.
 
 #### «Estado de la comunidad»
 
-Al comenzar esta pestaña se busca un CSV de energía autoconsumida con el patrón
-descrito en «Convenciones de lectura». El control «Selecciona un fichero de
+En el directorio de trabajo elegido se busca un CSV de energía autoconsumida
+con el patrón descrito en «Convenciones de lectura». El control «Fichero de
 energía autoconsumida» permite elegirlo. Los datos se agrupan por `mes` y se
 suman entre CUPS. Se calcula además:
 
@@ -189,8 +198,8 @@ se muestra un error y no se preparan las visualizaciones que dependen de él.
   proporcional y las energías medias por hora derivadas de perfiles ampliados.
 - **Datos de origen:** perfiles mensuales
   `perfil_comunitario_weekday.csv` y `perfil_comunitario_weekend.csv`; todos
-  los `*_day_profile_extended.json` directamente en `responses/`; y, si está
-  disponible, el JSON PVGIS estacional
+  los `*_day_profile_extended.json` directamente en el directorio de trabajo
+  seleccionado; y, si está disponible, el JSON PVGIS estacional
   `pvgis_spain_profile_winter_2025.json` o
   `pvgis_spain_profile_summer_2025.json`. Los meses usados proceden del CSV de
   autoconsumo seleccionado.
@@ -339,8 +348,10 @@ se muestra un error y no se preparan las visualizaciones que dependen de él.
 #### «Estado de un usuario»: selector, métricas y gráfica mensual
 
 - **Interacción:** el selector «Selecciona un CUPS» contiene los CUPS del CSV
-  seleccionado, ordenados alfabéticamente. El primer CUPS queda seleccionado
-  inicialmente.
+  de energía seleccionado, ordenados alfabéticamente. No requiere que los
+  perfiles horarios individuales estén presentes en el directorio de trabajo;
+  si faltan, se informa al preparar las gráficas correspondientes. El primer
+  CUPS queda seleccionado inicialmente.
 - **Datos de origen:** filas del CSV seleccionado filtradas por el CUPS. Se
   calcula para cada mes `energia_consumida_kWh` como importada + autoconsumida.
 - **Métricas:** «Consumo total [kWh/año]», «Consumo FV [kWh/año]» y

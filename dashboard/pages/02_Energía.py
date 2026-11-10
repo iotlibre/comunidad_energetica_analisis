@@ -31,6 +31,7 @@ from utils.hourly_profile_chart import (
 	build_seasonal_profile_figure,
 )
 from auth import require_dashboard_login
+from utils.work_directory import select_work_directory
 
 st.set_page_config(page_title="Energía", layout="wide")
 require_dashboard_login()
@@ -104,7 +105,13 @@ def build_monthly_energy_figure(data, title):
 	return figure
 
 
-responses_dir = Path(__file__).resolve().parents[2] / "responses"
+responses_root = Path(__file__).resolve().parents[2] / "responses"
+responses_dir = (
+	select_work_directory(responses_root, "work_directory_energy")
+	or responses_root
+)
+if not responses_dir.is_dir():
+	st.warning(f"No se encontró el directorio: {responses_dir}")
 
 
 metric_columns = {
@@ -135,9 +142,10 @@ with community_tab:
 		)
 	else:
 		selected_autoconsumption_path = st.selectbox(
-			"Selecciona un fichero de energía autoconsumida",
+			"Fichero de energía autoconsumida",
 			autoconsumption_files,
 			format_func=lambda path: path.name,
+			key=f"autoconsumption_file_{responses_dir.name}",
 		)
 		try:
 			autoconsumption_data = load_autoconsumption_data(
@@ -396,7 +404,17 @@ with user_tab:
 		)
 	else:
 		cups_options = sorted(autoconsumption_data["cups"].unique())
-		selected_cups = st.selectbox("Selecciona un CUPS", cups_options)
+		if not cups_options:
+			st.warning("El fichero seleccionado no contiene usuarios.")
+			st.stop()
+		selected_cups = st.selectbox(
+			"Selecciona un CUPS",
+			cups_options,
+			key=(
+				f"user_cups_{responses_dir.name}_"
+				f"{selected_autoconsumption_path.name}"
+			),
+		)
 		user_data = autoconsumption_data[
 			autoconsumption_data["cups"] == selected_cups
 		].copy()
