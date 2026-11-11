@@ -3,7 +3,7 @@
 ## 1) Crear la carpeta de entornos
 
 ```bash
-mkdir -p /home/oscar/sw/envs
+mkdir -p <directorio_de_entornos>
 ```
 
 Los bloqueos de versiones se guardan en el directorio `requirements/` del proyecto:
@@ -13,37 +13,35 @@ requirements/requirements-dash-lock.txt
 requirements/requirements-api-lock.txt
 ```
 
-Genéralos en el ordenador anterior, después de comprobar que los entornos funcionan correctamente:
+Genéralos en el servidor anterior, después de comprobar que los entornos funcionan correctamente:
 
 ```bash
-cd /home/oscar/Dropbox/22_IoE/_01_i+D/circulink/sw/sw/datadis_hitorico
-source /home/oscar/sw/envs/.dash/bin/activate
+cd <directorio_del_proyecto>
+source <directorio_de_entornos>/.dash/bin/activate
 python -m pip freeze --all > requirements/requirements-dash-lock.txt
 deactivate
 
-source /home/oscar/sw/envs/.api/bin/activate
+source <directorio_de_entornos>/.api/bin/activate
 python -m pip freeze --all > requirements/requirements-api-lock.txt
 deactivate
 ```
 
-Después, copia esos dos archivos al mismo directorio del nuevo ordenador.
-
 En este equipo usamos Python 3.10.12 en los dos entornos, igual que en producción:
 
 ```bash
-PYTHON_BIN=/home/oscar/.pyenv/versions/3.10.12/bin/python
+PYTHON_BIN=<ruta_al_python_3.10.12>
 ```
 
 ## 2) Crear el entorno del dashboard (.dash)
 
 ```bash
-$PYTHON_BIN -m venv /home/oscar/sw/envs/.dash
+$PYTHON_BIN -m venv <directorio_de_entornos>/.dash
 ```
 
 ## 3) Activar el entorno del dashboard
 
 ```bash
-source /home/oscar/sw/envs/.dash/bin/activate
+source <directorio_de_entornos>/.dash/bin/activate
 ```
 
 ## 4) Verificar la versión de Python del entorno del dashboard
@@ -52,23 +50,24 @@ source /home/oscar/sw/envs/.dash/bin/activate
 python --version
     Python 3.10.12
 which python
-    /home/oscar/sw/envs/.dash/bin/python
-```
+
 
 ## 5) Instalar dependencias del dashboard
 
 ```bash
-cd /home/oscar/Dropbox/22_IoE/_01_i+D/circulink/sw/sw/datadis_hitorico
-python -m pip install -r requirements/requirements-dash-lock.txt
+cd <directorio_del_proyecto>
+python3 -m pip install -r requirements-dash-lock.txt
 ```
 
 Ejecuta este paso después de copiar el archivo de bloqueo generado en el ordenador anterior.
 
+desplegar el fichero config_datadis.ini
+
 ## 6) Arrancar la app del dashboard
 
 ```bash
-cd /home/oscar/Dropbox/22_IoE/_01_i+D/circulink/sw/sw/datadis_hitorico
-source /home/oscar/sw/envs/.dash/bin/activate
+cd <directorio_del_proyecto>
+source <directorio_de_entornos>/.dash/bin/activate
 streamlit run dashboard/app.py --server.port 8501
 ```
 
@@ -80,31 +79,30 @@ http://localhost:8501
 
 ---
 
-## 8) Crear el entorno de FastAPI (.api)
+## 7) Crear el entorno de FastAPI (.api)
 
 ```bash
-$PYTHON_BIN -m venv /home/oscar/sw/envs/.api
+$PYTHON_BIN -m venv <directorio_de_entornos>/.api
 ```
 
-## 9) Activar el entorno de FastAPI
+## 8) Activar el entorno de FastAPI
 
 ```bash
-source /home/oscar/sw/envs/.api/bin/activate
+source <directorio_de_entornos>/.api/bin/activate
 ```
 
-## 10) Verificar la versión de Python del entorno de FastAPI
+## 9) Verificar la versión de Python del entorno de FastAPI
 
 ```bash
 python --version
     Python 3.10.12
 which python
-    /home/oscar/sw/envs/.api/bin/python
-```
 
-## 11) Instalar dependencias de FastAPI
+
+## 10) Instalar dependencias de FastAPI
 
 ```bash
-cd /home/oscar/Dropbox/22_IoE/_01_i+D/circulink/sw/sw/datadis_hitorico
+cd <directorio_del_proyecto>
 python -m pip install -r requirements/requirements-api-lock.txt
 ```
 
@@ -113,34 +111,11 @@ El archivo generado con `pip freeze --all` fija también las versiones de `pip`,
 `setuptools` y `wheel`; por tanto, no es necesario instalarlas con versiones
 separadas en este paso.
 
-## 12) Alternativa sin archivo de bloqueo
+## 11) Ejemplo de arrancar la API localmente
 
 ```bash
-cat > /home/oscar/Dropbox/22_IoE/_01_i+D/circulink/sw/sw/datadis_hitorico/requirements_api.txt <<'EOF'
-fastapi
-uvicorn
-pydantic
-requests
-pandas
-EOF
-
-python -m pip install -r requirements_api.txt
-```
-
-Verificar la instalación:
-
-```bash
-python --version
-    Python 3.10.12
-
-python -c "import fastapi, uvicorn; print('FastAPI y Uvicorn OK')"
-```
-
-## 13) Ejemplo de arrancar la API localmente
-
-```bash
-cd /home/oscar/Dropbox/22_IoE/_01_i+D/circulink/sw/sw/datadis_hitorico
-source /home/oscar/sw/envs/.api/bin/activate
+cd <directorio_del_proyecto>
+source <directorio_de_entornos>/.api/bin/activate
 uvicorn api36:app --host 0.0.0.0 --port 8000 --reload
 ```
 
@@ -152,7 +127,7 @@ http://localhost:8000/docs
 
 ---
 
-## 14) Recomendación para evitar conflictos
+## 12) Recomendación para evitar conflictos
 
 No mezcles dependencias en el mismo entorno. Mantén dos entornos separados:
 
@@ -161,10 +136,92 @@ No mezcles dependencias en el mismo entorno. Mantén dos entornos separados:
 
 Esto evita incompatibilidades de versiones y hace más fácil desplegar en el servidor.
 
-## 15) Recomendación para el servidor
+## 13) Recomendación para el servidor
 
 Lo ideal es desplegar cada parte con su propio entorno y, si es posible, usar Docker para que la versión de Python y las librerías sean reproducibles en producción.
 
-## 16) Regla práctica
+## 14) Regla práctica
 
 Si el proyecto en el servidor necesita simultáneamente dashboard y API, conviene desplegar ambos con la misma versión de Python y usando sus requirements separados.
+
+## 15) Instalar y desplegar File Browser
+
+### Instalar el binario
+
+Instala `curl` y ejecuta el instalador oficial de File Browser:
+
+```bash
+sudo apt install curl
+curl -fsSL https://raw.githubusercontent.com/filebrowser/get/master/get.sh | bash
+```
+
+Comprueba que se haya instalado correctamente:
+
+```bash
+filebrowser version
+which filebrowser
+```
+
+### Inicializar la base de datos
+
+Indica un directorio para los datos de File Browser y crea la base de datos:
+
+```bash
+mkdir -p <directorio_de_filebrowser>
+filebrowser -d <directorio_de_filebrowser>/filebrowser.db config init
+```
+
+Usa siempre la opción `-d` con la misma ruta para que los comandos y el servidor utilicen esa base de datos.
+
+### Configurar el servicio
+
+Detén File Browser antes de cambiar su configuración. Define el directorio que podrá gestionar, el puerto y la dirección de escucha:
+
+```bash
+filebrowser -d <directorio_de_filebrowser>/filebrowser.db config set --root <directorio_que_filebrowser_gestiona>
+filebrowser -d <directorio_de_filebrowser>/filebrowser.db config set --port 8080
+filebrowser -d <directorio_de_filebrowser>/filebrowser.db config set --address 0.0.0.0
+filebrowser -d <directorio_de_filebrowser>/filebrowser.db config cat
+```
+
+El valor `0.0.0.0` permite conexiones a través de todas las interfaces de red. Limita el acceso mediante el cortafuegos o un proxy inverso y no expongas el servicio directamente a Internet sin protegerlo.
+
+Comprueba que el usuario que ejecutará File Browser tenga permisos sobre su directorio de datos y sobre el directorio raíz configurado.
+
+### Crear el usuario administrador
+
+Reemplaza los marcadores por un nombre de usuario y una contraseña segura:
+
+```bash
+filebrowser -d <directorio_de_filebrowser>/filebrowser.db users add <usuario_administrador> <contraseña_segura> --perm.admin
+```
+
+### Arrancar el servidor
+
+Para ejecutarlo en primer plano:
+
+```bash
+filebrowser -d <directorio_de_filebrowser>/filebrowser.db
+```
+
+Como alternativa, puedes iniciarlo en segundo plano desde el directorio donde quieras guardar el registro:
+
+```bash
+cd <directorio_de_trabajo>
+nohup filebrowser -d <directorio_de_filebrowser>/filebrowser.db > filebrowser.log 2>&1 &
+```
+
+Para que un watchdog compruebe y reinicie el servicio periódicamente, instala o configura el script correspondiente y añade una tarea de cron:
+
+```bash
+chmod +x <ruta_al_script_watchdog>
+crontab -e
+```
+
+Añade esta línea al crontab para ejecutar el watchdog cada hora, por ejemplo en el minuto 56:
+
+```cron
+56 * * * * <ruta_al_script_watchdog>
+```
+
+Configura el watchdog para que utilice la misma base de datos y los permisos adecuados. Asegúrate de que compruebe si File Browser ya está activo antes de iniciarlo, para evitar procesos duplicados.
