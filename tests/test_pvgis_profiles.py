@@ -87,8 +87,14 @@ class PvgisProfilesTests(unittest.TestCase):
     def test_configured_leap_year_uses_its_calendar_and_hour_count(self):
         with tempfile.TemporaryDirectory() as temp_dir:
             pvgis_path = Path(temp_dir) / "pvgis_indextime_spain.txt"
+            hourly_values = [0] * 8760
+            february_28_start = (31 + 27) * 24
+            hourly_values[february_28_start:february_28_start + 24] = range(1, 25)
             pvgis_path.write_text(
-                "".join(f"{index:04d};1\n" for index in range(1, 8785)),
+                "".join(
+                    f"{index:04d};{value}\n"
+                    for index, value in enumerate(hourly_values, start=1)
+                ),
                 encoding="utf-8",
             )
 
@@ -97,16 +103,20 @@ class PvgisProfilesTests(unittest.TestCase):
             )
 
             self.assertEqual(result["year"], 2024)
-            self.assertTrue(
-                all(
-                    point["muestras"] == 183
-                    for season in ("verano", "invierno")
-                    for point in json.loads(
-                        Path(result["ficheros_generados"][season]).read_text(
-                            encoding="utf-8"
-                        )
-                    )["valores"]
+            winter_profile = json.loads(
+                Path(result["ficheros_generados"]["invierno"]).read_text(
+                    encoding="utf-8"
                 )
+            )
+            self.assertEqual(
+                [
+                    point["generacion_media"]
+                    for point in winter_profile["valores"]
+                ],
+                [2 * (hour + 1) / 183 for hour in range(24)],
+            )
+            self.assertTrue(
+                all(point["muestras"] == 183 for point in winter_profile["valores"])
             )
 
     def test_rejects_incomplete_source_file(self):

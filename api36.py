@@ -118,8 +118,7 @@ class SolicitudConsultaPvgis(BaseModel):
     """Modelo para solicitar una consulta PVGIS y generar el perfil horario."""
     lat: float = 43.38
     lon: float = -2.58
-    startyear: int = 2023
-    endyear: int = 2023
+    year: int = 2018
     peakpower: float = 100
     angle: float = 21
     azimuth: float = 0
@@ -1141,8 +1140,7 @@ def pvgis_consulta_horaria(solicitud: SolicitudConsultaPvgis, username: str = De
         parametros = {
             "lat": solicitud.lat,
             "lon": solicitud.lon,
-            "startyear": solicitud.startyear,
-            "endyear": solicitud.endyear,
+            "year": solicitud.year,
             "peakpower": solicitud.peakpower,
             "angle": solicitud.angle,
             "azimuth": solicitud.azimuth,

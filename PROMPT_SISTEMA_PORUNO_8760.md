@@ -541,18 +541,18 @@ Handler `pvgis_consulta_horaria`; delega en `generar_pvgis_horario` de `PVGIS_co
 **Solicitud**  
 Cuerpo JSON con:
 - `lat` (43.38), `lon` (-2.58).
-- `startyear` (2023), `endyear` (2023).
+- `year` (2018 por defecto): año para el que se genera la serie.
 - `peakpower` (100), `angle` (21), `azimuth` (0), `loss` (14).
 - `directorio` (cadena; por defecto `"responses"`).
 
 **Entradas**  
-Los parámetros enviados. No requiere ficheros previos; consulta `https://re.jrc.ec.europa.eu/api/v5_3/seriescalc`.
+Los parámetros enviados. No requiere ficheros previos; consulta PVGIS únicamente para el año solicitado.
 
 **Proceso**  
-Lee la respuesta horaria de PVGIS, ajusta los valores mediante la lógica de horario local y convierte Wh a kWh/hora. La lógica de ajuste horario emplea índices fijos basados en 2023; el cálculo no es una conversión general de zona horaria para cualquier año.
+Lee las marcas horarias y los valores de potencia de PVGIS, convierte las marcas UTC a la zona `Europe/Madrid`, omite el 29 de febrero si el año es bisiesto y convierte Wh a kWh por hora. Completa con una hora de producción cero al inicio del año local, ya que el dato correspondiente pertenece al año UTC anterior. La serie final contiene siempre 8760 horas; si PVGIS no proporciona las horas esperadas para el año consultado, la operación falla.
 
 **Salidas**  
-Escribe `pvgis_indextime_spain.txt` en el directorio indicado, con filas `0001;valor_horario_en_kWh`. La respuesta incluye `status`, `output_file`, `hours`, `parameters` y `url`.
+Escribe `pvgis_indextime_spain.txt` en el directorio indicado, con 8760 filas `0001;valor_horario_en_kWh`. La respuesta incluye `status`, `output_file`, `hours`, `parameters` y `url`.
 
 **Errores**  
 Los errores de consulta o procesamiento se devuelven como HTTP 500.
@@ -572,10 +572,10 @@ Cuerpo JSON:
 - `directorio` (cadena; por defecto `"responses"`).
 
 **Entradas**  
-`{directorio}/pvgis_indextime_spain.txt`, con filas consecutivas `0001;valor_horario_en_kWh`. Debe contener 8760 filas en año no bisiesto o 8784 en año bisiesto, y los índices deben ser consecutivos desde 0001.
+`{directorio}/pvgis_indextime_spain.txt`, con exactamente 8760 filas consecutivas `0001;valor_horario_en_kWh`, independientemente de que `year` sea bisiesto. Los índices deben ser consecutivos desde 0001.
 
 **Proceso**  
-Asigna las muestras a horas locales `Europe/Madrid` a partir de la medianoche local del 1 de enero y avanza por horas físicas. Verano comprende abril-septiembre; invierno, octubre-marzo. Promedia cada hora local por estación y divide el resultado por `num_usuarios`. En el cambio de otoño, las dos muestras de las 02:00 cuentan en el promedio de esa hora.
+Si `year` es bisiesto, inserta en la serie las mismas 24 muestras del 28 de febrero para representar el 29 de febrero. Asigna después las muestras a horas locales `Europe/Madrid` a partir de la medianoche local del 1 de enero y avanza por horas físicas. Verano comprende abril-septiembre; invierno, octubre-marzo. Promedia cada hora local por estación y divide el resultado por `num_usuarios`. En el cambio de otoño, las dos muestras de las 02:00 cuentan en el promedio de esa hora.
 
 **Salidas**  
 Genera `pvgis_spain_profile_summer_{year}.json` y `pvgis_spain_profile_winter_{year}.json` en el directorio del TXT. Cada fichero incluye año, número de usuarios, estación, meses, unidad y 24 valores horarios con número de muestras y generación media. La respuesta contiene `status`, `year`, `num_usuarios`, `fichero_origen` y `ficheros_generados`.

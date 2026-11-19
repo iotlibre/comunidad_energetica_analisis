@@ -27,10 +27,9 @@ def calcular_perfiles_medios_por_usuario(
     """Calculate 24-hour seasonal mean generation profiles per user."""
     source_path = Path(pvgis_path)
     rows = source_path.read_text(encoding="utf-8").splitlines()
-    expected_hours = 8784 if calendar.isleap(year) else 8760
-    if len(rows) != expected_hours:
+    if len(rows) != 8760:
         raise ValueError(
-            f"El fichero PVGIS debe contener exactamente {expected_hours} horas para {year}."
+            f"El fichero PVGIS debe contener exactamente 8760 horas para {year}."
         )
 
     hourly_values = []
@@ -45,6 +44,13 @@ def calcular_perfiles_medios_por_usuario(
         if not math.isfinite(value):
             raise ValueError(f"Valor no finito en la hora {expected_index}.")
         hourly_values.append(value)
+
+    if calendar.isleap(year):
+        february_28_start = (31 + 27) * 24
+        february_29_start = (31 + 28) * 24
+        hourly_values[february_29_start:february_29_start] = hourly_values[
+            february_28_start:february_29_start
+        ]
 
     seasons = {
         "verano": {

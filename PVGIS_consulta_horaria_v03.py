@@ -1,17 +1,17 @@
 import requests
-import json
 import os
+from datetime import datetime, timezone
 from typing import Dict, List, Optional
+from zoneinfo import ZoneInfo
 
 DEFAULT_OUTPUT_FILENAME = "pvgis_indextime_spain.txt"
 DEFAULT_OUTPUT_DIR = "responses"
+SPAIN_TIMEZONE = ZoneInfo("Europe/Madrid")
 
-# Valores por defecto embebidos
 DEFAULT_PARAMS = {
     "lat": 43.38,
     "lon": -2.58,
-    "startyear": 2023,
-    "endyear": 2023,
+    "year": 2018,
     "peakpower": 100,
     "angle": 21,
     "azimuth": 0,
@@ -25,11 +25,12 @@ def cargar_parametros_pvgis() -> Dict[str, object]:
 
 
 def construir_url_pvgis(params: Dict[str, object]) -> str:
-    """Genera la URL para la consulta a la API de PVGIS."""
+    """Genera una consulta para el año solicitado."""
+    year = int(params["year"])
     return (
         "https://re.jrc.ec.europa.eu/api/v5_3/seriescalc"
         f"?lat={params['lat']}&lon={params['lon']}"
-        f"&startyear={params['startyear']}&endyear={params['endyear']}"
+        f"&startyear={year}&endyear={year}"
         "&radiation=2.5"
         "&pvcalculation=1"
         f"&peakpower={params['peakpower']}"
@@ -41,30 +42,27 @@ def construir_url_pvgis(params: Dict[str, object]) -> str:
     )
 
 
-def ajustar_horario_spain(P_utc: List[float]) -> List[float]:
-    """Ajusta el horario UTC a horario de España para el año 2023."""
-    n = len(P_utc)
-    P_spain = [0.0] * n
+def ajustar_horario_spain(hourly: List[Dict[str, object]], year: int) -> List[float]:
+    """Convierte la serie UTC a hora peninsular y excluye el 29 de febrero."""
+    p_spain = []
+    for row in hourly:
+        timestamp_utc = datetime.strptime(str(row["time"]), "%Y%m%d:%H%M").replace(
+            tzinfo=timezone.utc
+        )
+        timestamp_spain = timestamp_utc.astimezone(SPAIN_TIMEZONE)
+        if timestamp_spain.year != year:
+            continue
+        if timestamp_spain.month == 2 and timestamp_spain.day == 29:
+            continue
+        p_spain.append(float(row["P"]))
 
-    for i in range(min(2018, n)):
-        if i - 1 >= 0:
-            P_spain[i] = P_utc[i - 1]
-        else:
-            P_spain[i] = 0.0
-
-    for i in range(2018, min(7225, n)):
-        if i - 2 >= 0:
-            P_spain[i] = P_utc[i - 2]
-        else:
-            P_spain[i] = 0.0
-
-    for i in range(7225, n):
-        if i - 1 >= 0:
-            P_spain[i] = P_utc[i - 1]
-        else:
-            P_spain[i] = 0.0
-
-    return P_spain
+    if len(p_spain) != 8759:
+        raise ValueError(
+            f"PVGIS devolvió {len(p_spain)} horas para {year} tras excluir "
+            "el 29 de febrero; se esperaban 8759 antes de completar la primera "
+            "hora del año."
+        )
+    return [0.0, *p_spain]
 
 
 def guardar_txt_pvgis_spain(P_spain: List[float], output_path: Optional[str] = None) -> str:
@@ -107,8 +105,8 @@ def generar_pvgis_horario(parametros: Optional[Dict[str, object]] = None, output
 
     data = response.json()
     hourly = data["outputs"]["hourly"]
-    P_utc = [row["P"] for row in hourly]
-    P_spain = ajustar_horario_spain(P_utc)
+    year = int(parametros["year"])
+    P_spain = ajustar_horario_spain(hourly, year)
     resultado_path = guardar_txt_pvgis_spain(P_spain, output_path)
 
     return {
