@@ -56,14 +56,43 @@ which python
 
 ```bash
 cd <directorio_del_proyecto>
-python3 -m pip install -r requirements-dash-lock.txt
+python -m pip install -r requirements/requirements-dash-lock.txt
 ```
 
 Ejecuta este paso después de copiar el archivo de bloqueo generado en el ordenador anterior.
 
-desplegar el fichero config_datadis.ini
+Comprueba también que `config_datadis.ini` esté desplegado y contenga la sección
+`[api_auth]` con `username` y `password`. El dashboard no guarda la contraseña
+introducida en el navegador: la sesión utiliza una cookie firmada que no contiene
+la contraseña.
 
 ## 6) Arrancar la app del dashboard
+
+Al iniciar el dashboard, si no se define `DASHBOARD_SESSION_SECRET`, se genera
+automáticamente una clave persistente fuera del repositorio en
+`~/.config/comunidad_energetica_analisis/dashboard_session.key`, con permisos
+restringidos al usuario que ejecuta Streamlit. Así, no es necesario exportar
+ninguna clave manualmente y las sesiones sobreviven a los reinicios del proceso.
+
+También puedes definir una clave explícita una sola vez en la configuración
+protegida del entorno; si lo haces, usa el mismo valor en cada inicio:
+
+```bash
+python -c 'import secrets; print(secrets.token_urlsafe(32))'
+```
+
+El tiempo de vida y la opción `Secure` de la cookie son opcionales:
+
+```bash
+export DASHBOARD_SESSION_SECRET='<clave_generada_de_al_menos_32_caracteres>'
+export DASHBOARD_SESSION_TTL_HOURS=12
+export DASHBOARD_COOKIE_SECURE=false
+```
+
+`DASHBOARD_SESSION_TTL_HOURS` debe ser un entero positivo; si se omite, el valor
+predeterminado es 12 horas. Usa `DASHBOARD_COOKIE_SECURE=true` cuando el dashboard
+se sirva exclusivamente por HTTPS. Para acceso local por HTTP, mantenlo en
+`false`. No guardes una clave explícita en el repositorio ni la compartas.
 
 ```bash
 cd <directorio_del_proyecto>
@@ -76,6 +105,14 @@ Abre en el navegador:
 ```text
 http://localhost:8501
 ```
+
+Inicia sesión con el usuario y la contraseña de `[api_auth]` en
+`config_datadis.ini`. Tras validar las credenciales, el dashboard muestra un
+mensaje de confirmación y abre la pantalla inicial. La cookie firmada conserva
+la sesión al actualizar el navegador hasta que expire el tiempo configurado.
+Selecciona **Cerrar sesión** para invalidarla y eliminar la cookie. Si cambias
+la clave de sesión o las credenciales, las sesiones existentes dejan de ser
+válidas.
 
 ---
 

@@ -7,6 +7,7 @@
 | Archivo | Propósito y contenido actual |
 |---|---|
 | `dashboard/app.py` | Aplicación principal. Muestra el título «Dashboard de perfiles energéticos», enumera los archivos de `responses/`, permite seleccionar uno y, si es JSON, presenta su tamaño, número de elementos y contenido con `st.json`. |
+| `dashboard/auth.py` | Protege la aplicación y las páginas con credenciales de `[api_auth]` de `config_datadis.ini`. Persiste el inicio de sesión mediante una cookie firmada, sin guardar la contraseña en el navegador. |
 | `dashboard/pages/02_Datos_disponibles.py` | Página «Datos disponibles». Permite inspeccionar un JSON de consumo horario mediante una gráfica y una tabla CSV de energía autoconsumida. |
 | `dashboard/pages/02_Energía.py` | Página «Energía». Contiene las pestañas «Comunidad» y «Usuario», con métricas, tablas y gráficas mensuales, balances y perfiles horarios estacionales. |
 | `dashboard/pages/01_resumen.py` | Página «Resumen energético». Actualmente solo muestra un mensaje informativo de que la página mostrará indicadores generales; no implementa gráficas ni tablas. |
@@ -16,6 +17,31 @@
 | `dashboard/pages/06_reparto.py` | Página «Reparto energético». Actualmente solo muestra un mensaje informativo sobre futuros repartos; no implementa gráficas ni tablas. |
 | `dashboard/pages/07_autoconsumo.py` | Página «Autoconsumo». Actualmente solo muestra un mensaje informativo sobre generación, consumo, importación y exportación; no implementa gráficas ni tablas. |
 | `dashboard/pages/08_prueba.py` | Página «Resumen Prueba». Actualmente solo muestra un mensaje informativo; no implementa gráficas ni tablas. |
+
+### Autenticación y sesión
+
+- Todas las entradas de la aplicación y páginas llaman a
+  `require_dashboard_login()`; no se debe eliminar esta protección de una página.
+- Las credenciales se leen de `[api_auth]` en `config_datadis.ini`. Tras
+  validarlas, se muestra un mensaje de confirmación y se entra en la pantalla
+  solicitada.
+- La sesión se conserva en la cookie `dashboard_session`, que contiene un token
+  firmado con caducidad y no la contraseña. El tiempo predeterminado es de 12
+  horas; `DASHBOARD_SESSION_TTL_HOURS` permite configurarlo.
+- Si no está definida `DASHBOARD_SESSION_SECRET`, se crea una clave persistente
+  fuera del repositorio en
+  `~/.config/comunidad_energetica_analisis/dashboard_session.key` (o bajo
+  `XDG_CONFIG_HOME` si se define). El directorio tiene permisos `0700` y el
+  archivo `0600`. También se puede proporcionar una clave externa de al menos 32
+  caracteres. Para HTTPS, configura `DASHBOARD_COOKIE_SECURE=true`; para HTTP
+  local, usa `false`.
+- El componente `extra-streamlit-components` está fijado en
+  `requirements/requirements-dash-lock.txt`. Su lectura de cookies se debe
+  actualizar después de escribir o eliminar una cookie; reutilizar el valor
+  cacheado puede dejar al usuario en la pantalla de login incluso después de
+  validar las credenciales.
+- **Cerrar sesión** elimina la cookie. Cambiar las credenciales o la clave de
+  firma invalida las sesiones emitidas anteriormente.
 
 No se encontraron módulos Python bajo `dashboard/components/`. Los módulos
 reutilizables de visualización están en `dashboard/utils/`.

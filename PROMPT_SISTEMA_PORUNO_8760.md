@@ -235,6 +235,7 @@ ENDPOINTS DEFINIDOS EN api36.py
 | `PVGIS_consulta_horaria_v03.py` | Consulta de la serie horaria a PVGIS y escritura del TXT horario. |
 | `pvgis_perfiles_medios.py` | Cálculo de perfiles medios estacionales de generación por usuario. |
 | `calculo_autoconsumida_v0.py` | Cálculo mensual de autoconsumo y proyección de autoconsumo horaria. |
+| `dashboard/auth.py` | Autenticación del dashboard Streamlit mediante una cookie de sesión firmada y con caducidad. |
 
 ### Datos, configuración y salidas
 
@@ -245,13 +246,36 @@ ENDPOINTS DEFINIDOS EN api36.py
 | `logs/` | Logs del proceso de consulta a DATADIS. |
 | `community_profiles/` | Perfiles de ejemplo o datos comunitarios del proyecto. |
 | `config_datadis.ini`, `config_datadis_ea.ini` | Configuración de la integración con DATADIS. |
+| `~/.config/comunidad_energetica_analisis/dashboard_session.key` | Clave de firma persistente del dashboard, creada fuera del repositorio con permisos privados si no se configura `DASHBOARD_SESSION_SECRET`. |
 | `requirements_clean.txt` | Dependencias declaradas del proyecto. |
 
 Los endpoints de perfiles, poruno y reparto utilizan `responses/` como directorio por defecto. No se debe asumir que los subdirectorios `responses/profile/`, `responses/poruno/` o `responses/reparto/` se creen o utilicen automáticamente: las salidas se escriben en el directorio recibido o en la ruta fija que indique cada implementación.
 
 ### Autenticación
 
-Todas las rutas de `api36.py` requieren autenticación HTTP Basic. Las credenciales están configuradas en el código de la aplicación; no se reproducen aquí. Una solicitud sin credenciales válidas recibe HTTP 401.
+Todas las rutas de `api36.py` requieren autenticación HTTP Basic. El usuario y la
+contraseña se leen de `[api_auth]` en `config_datadis.ini`; una solicitud sin
+credenciales válidas recibe HTTP 401.
+
+El dashboard Streamlit tiene autenticación propia, implementada en
+`dashboard/auth.py` y aplicada desde la aplicación principal y las páginas. Usa
+las mismas credenciales `[api_auth]`, pero no conserva la contraseña en el
+navegador: al iniciar sesión crea la cookie `dashboard_session` con un token
+firmado y con caducidad. La duración predeterminada es de 12 horas y se puede
+cambiar con `DASHBOARD_SESSION_TTL_HOURS`. Si no se define
+`DASHBOARD_SESSION_SECRET`, genera y conserva la clave en
+`~/.config/comunidad_energetica_analisis/dashboard_session.key`; respeta
+`XDG_CONFIG_HOME` si está definido. El directorio y el archivo se protegen con
+permisos `0700` y `0600`. También admite una clave externa de al menos 32
+caracteres y `DASHBOARD_COOKIE_SECURE=true` para despliegues HTTPS.
+
+Después de validar las credenciales, el dashboard muestra una confirmación,
+espera la escritura de la cookie y actualiza la lectura de cookies antes de
+mostrar la aplicación. Esta actualización evita reutilizar el resultado antiguo
+del componente `extra-streamlit-components` (`CookieManager`) al iniciar o
+cerrar sesión. El cierre de sesión elimina la cookie; cambiar la clave o las
+credenciales invalida las sesiones existentes. La dependencia está fijada en
+`requirements/requirements-dash-lock.txt`.
 
 ## Convenciones de las fichas
 
