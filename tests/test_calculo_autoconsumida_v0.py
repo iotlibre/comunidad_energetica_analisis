@@ -131,6 +131,79 @@ class ParseDateTimeTests(unittest.TestCase):
                 expected_indices.append(int((utc_dt - year_start_utc).total_seconds() // 3600) + 1)
 
             self.assertEqual(sorted(consumption_by_index.keys()), expected_indices)
+            self.assertEqual(consumption_by_index[expected_indices[2]], 2.0)
+
+    def test_load_proyeccion_json_discards_duplicate_three_and_fills_dst_hour(self):
+        from datetime import timezone
+        from zoneinfo import ZoneInfo
+
+        with tempfile.TemporaryDirectory() as tmpdir:
+            temp_dir = Path(tmpdir)
+            json_path = temp_dir / "TESTCUPS_2025_10_2025_10.json"
+            json_path.write_text(
+                json.dumps(
+                    [
+                        {"date": "2025/10/26", "time": "01:00", "consumptionKWh": 1.0},
+                        {"date": "2025/10/26", "time": "02:00", "consumptionKWh": 2.0},
+                        {"date": "2025/10/26", "time": "03:00", "consumptionKWh": 3.0},
+                        {"date": "2025/10/26", "time": "03:00", "consumptionKWh": 4.0},
+                        {"date": "2025/10/26", "time": "04:00", "consumptionKWh": 5.0},
+                    ]
+                ),
+                encoding="utf-8",
+            )
+
+            _, year, consumption_by_index, _ = _load_proyeccion_json(json_path)
+
+            tz = ZoneInfo("Europe/Madrid")
+            year_start_utc = datetime(year, 1, 1, tzinfo=tz).astimezone(timezone.utc)
+            repeated_two_utc = datetime(2025, 10, 26, 2, 0).replace(
+                tzinfo=tz, fold=1
+            ).astimezone(timezone.utc)
+            repeated_two_index = (
+                int((repeated_two_utc - year_start_utc).total_seconds() // 3600) + 1
+            )
+            three_utc = datetime(2025, 10, 26, 3, 0).replace(
+                tzinfo=tz
+            ).astimezone(timezone.utc)
+            three_index = int((three_utc - year_start_utc).total_seconds() // 3600) + 1
+
+        self.assertEqual(len(consumption_by_index), 5)
+        self.assertEqual(consumption_by_index[repeated_two_index], 2.0)
+        self.assertEqual(consumption_by_index[three_index], 3.0)
+
+    def test_load_proyeccion_json_still_rejects_duplicate_outside_dst_month(self):
+        with tempfile.TemporaryDirectory() as tmpdir:
+            json_path = Path(tmpdir) / "TESTCUPS_2025_01_2025_01.json"
+            json_path.write_text(
+                json.dumps(
+                    [
+                        {"date": "2025/01/01", "time": "01:00", "consumptionKWh": 1.0},
+                        {"date": "2025/01/01", "time": "01:00", "consumptionKWh": 2.0},
+                    ]
+                ),
+                encoding="utf-8",
+            )
+
+            with self.assertRaisesRegex(ValueError, "Hora duplicada no ambigua"):
+                _load_proyeccion_json(json_path)
+
+    def test_load_proyeccion_json_does_not_fill_missing_hour_outside_dst_month(self):
+        with tempfile.TemporaryDirectory() as tmpdir:
+            json_path = Path(tmpdir) / "TESTCUPS_2025_01_2025_01.json"
+            json_path.write_text(
+                json.dumps(
+                    [
+                        {"date": "2025/01/01", "time": "00:00", "consumptionKWh": 1.0},
+                        {"date": "2025/01/01", "time": "02:00", "consumptionKWh": 2.0},
+                    ]
+                ),
+                encoding="utf-8",
+            )
+
+            _, _, consumption_by_index, _ = _load_proyeccion_json(json_path)
+
+        self.assertEqual(len(consumption_by_index), 2)
 
     def test_load_proyeccion_json_maps_datadis_end_times_to_year_hours(self):
         with tempfile.TemporaryDirectory() as tmpdir:

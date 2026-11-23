@@ -226,6 +226,22 @@ def _is_ambiguous_local_time(dt: datetime, tz: ZoneInfo) -> bool:
     return dt_fold0.utcoffset() != dt_fold1.utcoffset()
 
 
+def _dst_transition_months(year: int, tz: ZoneInfo) -> set[int]:
+    months = set()
+    for month in range(1, 13):
+        current_date = datetime(year, month, 1, 12, tzinfo=tz)
+        offset = current_date.utcoffset()
+        current_date += timedelta(days=1)
+        while current_date.month == month:
+            next_offset = current_date.utcoffset()
+            if next_offset != offset:
+                months.add(month)
+                break
+            offset = next_offset
+            current_date += timedelta(days=1)
+    return months
+
+
 def _load_proyeccion_json(archivo_json: Path):
     if not archivo_json.exists():
         raise FileNotFoundError(f"Archivo JSON no encontrado: {archivo_json}")
@@ -267,6 +283,7 @@ def _load_proyeccion_json(archivo_json: Path):
     year = year_end
     tz = ZoneInfo("Europe/Madrid")
     year_start_utc = datetime(year, 1, 1, tzinfo=tz).astimezone(timezone.utc)
+    transition_months = _dst_transition_months(year, tz)
     seen_local_times = {}
     uses_datadis_end_times = any(
         isinstance(item, dict) and str(item.get('time', '')).strip() == '24:00'
@@ -308,6 +325,13 @@ def _load_proyeccion_json(archivo_json: Path):
         fold = 0
 
         if count > 0:
+            if dt.month in transition_months:
+                if count > 1:
+                    raise ValueError(
+                        f"Más de dos ocurrencias de hora en {archivo_json.name}: "
+                        f"{date_str} {time_str}"
+                    )
+                continue
             if not _is_ambiguous_local_time(dt, tz):
                 raise ValueError(
                     f"Hora duplicada no ambigua en {archivo_json.name}: {date_str} {time_str}"
@@ -338,6 +362,22 @@ def _load_proyeccion_json(archivo_json: Path):
 
     if not consumption_by_index:
         raise ValueError(f"No se encontraron horas de consumo válidas en {archivo_json}")
+
+    for index in range(min(consumption_by_index) + 1, max(consumption_by_index)):
+        if index in consumption_by_index:
+            continue
+        elapsed_hours = index if uses_datadis_end_times else index - 1
+        utc_dt = year_start_utc + timedelta(hours=elapsed_hours)
+        local_dt = utc_dt.astimezone(tz).replace(tzinfo=None)
+        if local_dt.month not in transition_months:
+            continue
+        if index - 1 not in consumption_by_index:
+            raise ValueError(
+                f"No se puede completar la hora {local_dt} en {archivo_json.name}: "
+                "falta el registro de la hora anterior."
+            )
+        consumption_by_index[index] = consumption_by_index[index - 1]
+        datetime_by_index[index] = local_dt
 
     return cups, year, consumption_by_index, datetime_by_index
 
