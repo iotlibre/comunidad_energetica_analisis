@@ -10,13 +10,6 @@
 | `dashboard/auth.py` | Protege la aplicación y las páginas con credenciales de `[api_auth]` de `config_datadis.ini`. Persiste el inicio de sesión mediante una cookie firmada, sin guardar la contraseña en el navegador. |
 | `dashboard/pages/02_Datos_disponibles.py` | Página «Datos disponibles». Permite inspeccionar un JSON de consumo horario mediante una gráfica y una tabla CSV de energía autoconsumida. |
 | `dashboard/pages/02_Energía.py` | Página «Energía». Contiene las pestañas «Comunidad» y «Usuario», con métricas, tablas y gráficas mensuales, balances y perfiles horarios estacionales. |
-| `dashboard/pages/01_resumen.py` | Página «Resumen energético». Actualmente solo muestra un mensaje informativo de que la página mostrará indicadores generales; no implementa gráficas ni tablas. |
-| `dashboard/pages/03_poruno_8760.py` | Página «Perfiles poruno 8760». Actualmente solo muestra un mensaje informativo sobre futuros coeficientes horarios; no implementa gráficas ni tablas. |
-| `dashboard/pages/04_validacion.py` | Página «Validación de coeficientes». Actualmente solo muestra un mensaje informativo sobre una futura validación; no implementa gráficas ni tablas. |
-| `dashboard/pages/05_pvgis.py` | Página «Producción PVGIS». Actualmente solo muestra un mensaje informativo sobre futura producción fotovoltaica; no implementa gráficas ni tablas. |
-| `dashboard/pages/06_reparto.py` | Página «Reparto energético». Actualmente solo muestra un mensaje informativo sobre futuros repartos; no implementa gráficas ni tablas. |
-| `dashboard/pages/07_autoconsumo.py` | Página «Autoconsumo». Actualmente solo muestra un mensaje informativo sobre generación, consumo, importación y exportación; no implementa gráficas ni tablas. |
-| `dashboard/pages/08_prueba.py` | Página «Resumen Prueba». Actualmente solo muestra un mensaje informativo; no implementa gráficas ni tablas. |
 
 ### Autenticación y sesión
 
@@ -480,22 +473,7 @@ se muestra un error y no se preparan las visualizaciones que dependen de él.
   weekday/weekend y datos para el tipo de día y estación. Ante errores de
   lectura o datos ausentes, muestra un error explícito.
 
-## 6. Páginas informativas sin visualizaciones
-
-En la implementación inspeccionada, las páginas siguientes muestran su título
-y un mensaje `st.info`; no contienen todavía gráficos, tablas ni cálculos:
-
-| Página | Mensaje actual |
-|---|---|
-| «Resumen energético» | «Esta página mostrará los indicadores generales del sistema.» |
-| «Perfiles poruno 8760» | «Esta página mostrará los coeficientes horarios de 8760 horas.» |
-| «Validación de coeficientes» | «Esta página mostrará la validación de la suma horaria de coeficientes.» |
-| «Producción PVGIS» | «Esta página mostrará la producción fotovoltaica horaria.» |
-| «Reparto energético» | «Esta página mostrará el reparto de energía entre los CUPS.» |
-| «Autoconsumo» | «Esta página mostrará generación, consumo, importación y exportación.» |
-| «Resumen Prueba» | «Esta página es una página de prueba.» |
-
-## 7. Estructura requerida para documentar futuras visualizaciones
+## 6. Estructura requerida para documentar futuras visualizaciones
 
 Al añadir o modificar una gráfica o tabla, documentarla bajo la pestaña y
 sección donde aparece, usando la misma estructura:
